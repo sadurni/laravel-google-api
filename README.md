@@ -1,4 +1,4 @@
-# Google Places APi.
+# Google Places API.
 
 A **[Laravel/Lumen](https://laravel.com/docs/5.4)** package for working with **Google API Web Services**.
 
