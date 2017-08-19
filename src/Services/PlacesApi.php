@@ -1,0 +1,333 @@
+<?php namespace Mrjonleek\GoogleApi\Services;
+
+use GuzzleHttp\Client;
+use Mrjonleek\GoogleApi\Exceptions\PlacesException;
+
+class PlacesApi
+{
+    const NEARBY_SEARCH_URL = 'nearbysearch/json';
+
+    const TEXT_SEARCH_URL = 'textsearch/json';
+
+    const RADAR_SEARCH_URL = 'radarsearch/json';
+
+    const DETAILS_SEARCH_URL = 'details/json';
+
+    const PLACE_AUTOCOMPLETE_URL = 'autocomplete/json';
+
+    const QUERY_AUTOCOMPLETE_URL = 'queryautocomplete/json';
+
+    const PLACE_ADD_URL = 'add/json';
+
+    /**
+     * @var
+     */
+    public $status;
+
+    /**
+     * @var null
+     */
+    private $key = null;
+
+    /**
+     * @var \GuzzleHttp\Client
+     */
+    private $client;
+
+    /**
+     * PlacesApi constructor.
+     *
+     * @param null $key
+     */
+    public function __construct($key = null)
+    {
+        $this->key = $key;
+
+        $this->client = new Client([
+            'base_uri' => 'https://maps.googleapis.com/maps/api/place/',
+        ]);
+    }
+
+    /**
+     * Place Nearby Search Request to google api.
+     *
+     * @param $location
+     * @param null $radius
+     * @param array $params
+     *
+     * @return \Illuminate\Support\Collection
+     * @throws \Mrjonleek\GoogleApi\Eceptions\PlacesException
+     */
+    public function nearbySearch($location, $radius = null, $params = [])
+    {
+        $this->checkKey();
+
+        $params = $this->prepareNearbySearchParams($location, $radius, $params);
+        $response = $this->makeRequest(self::NEARBY_SEARCH_URL, $params);
+
+        return $this->convertToCollection($response, 'results');
+    }
+
+    /**
+     * Place Text Search Request to google places api.
+     *
+     * @param $query
+     * @param array $params
+     *
+     * @return \Illuminate\Support\Collection
+     * @throws \Mrjonleek\GoogleApi\Eceptions\PlacesException
+     */
+    public function textSearch($query, $params = [])
+    {
+        $this->checkKey();
+
+        $params['query'] = $query;
+        $response = $this->makeRequest(self::TEXT_SEARCH_URL, $params);
+
+        return $this->convertToCollection($response, 'results');
+
+    }
+
+    /**
+     * Radar Search Request to google api
+     *
+     * @param $location
+     * @param $radius
+     * @param $params
+     *
+     * @return \Illuminate\Support\Collection
+     * @throws \Mrjonleek\GoogleApi\Eceptions\PlacesException
+     */
+    public function radarSearch($location, $radius, array $params)
+    {
+        $this->checkKey();
+
+        $params = $this->prepareRadarSearchParams($location, $radius, $params);
+
+        $response = $this->makeRequest(self::RADAR_SEARCH_URL, $params);
+
+        return $this->convertToCollection($response, 'results');
+    }
+
+    /**
+     * Place Details Request to google places api.
+     *
+     * @param $placeId
+     * @param array $params
+     *
+     * @return \Illuminate\Support\Collection
+     * @throws \Mrjonleek\GoogleApi\Eceptions\PlacesException
+     */
+    public function placeDetails($placeId, $params = [])
+    {
+        $this->checkKey();
+
+        $params['placeid'] = $placeId;
+
+        $response = $this->makeRequest(self::DETAILS_SEARCH_URL, $params);
+
+        return $this->convertToCollection($response);
+    }
+
+    /**
+     * Place AutoComplete Request to google places api.
+     *
+     * @param $input
+     * @param array $params
+     *
+     * @return \Illuminate\Support\Collection
+     */
+    public function placeAutocomplete($input, $params = [])
+    {
+        $this->checkKey();
+
+        $params['input'] = $input;
+
+        $response = $this->makeRequest(self::PLACE_AUTOCOMPLETE_URL, $params);
+
+        return $this->convertToCollection($response, 'predictions');
+    }
+
+    /**
+     * Query AutoComplete Request to the google api.
+     *
+     * @param $input
+     * @param array $params
+     *
+     * @return \Illuminate\Support\Collection
+     * @throws \Mrjonleek\GoogleApi\Eceptions\PlacesException
+     */
+    public function queryAutocomplete($input, $params = [])
+    {
+        $this->checkKey();
+
+        $params['input'] = $input;
+
+        $response = $this->makeRequest(self::QUERY_AUTOCOMPLETE_URL, $params);
+
+        return $this->convertToCollection($response, 'predictions');
+    }
+
+    /**
+     * Adds a place to Google's database
+     *
+     * @param $params
+     *
+     * @return \Illuminate\Support\Collection
+     * @throws PlacesException
+     */
+    public function addPlace($params)
+    {
+        $this->checkKey();
+
+        $response = $this->makeRequest(self::PLACE_ADD_URL, $params, 'post');
+
+        return $this->convertToCollection($response);
+    }
+
+    /**
+     * @param $uri
+     * @param $params
+     * @param $method
+     *
+     * @return mixed|string
+     * @throws \Mrjonleek\GoogleApi\Eceptions\PlacesException
+     */
+    private function makeRequest($uri, $params, $method = 'get')
+    {
+        $options = [
+            'query' => [
+                'key' => $this->key,
+            ],
+        ];
+
+        if ($method == 'post') {
+            $options = array_merge(['body' => json_encode($params)], $options);
+        } else {
+            $options['query'] = array_merge($options['query'], $params);
+        }
+
+        $response = json_decode($this->client->$method($uri, $options)
+            ->getBody()->getContents(), true);
+
+        $this->setStatus($response['status']);
+
+        if ($response['status'] !== 'OK') {
+            throw new PlacesException("Response returned with status: "
+                . $response['status']);
+        }
+
+        return $response;
+    }
+
+    /**
+     * @param array $data
+     *
+     * @return \Illuminate\Support\Collection
+     */
+    private function convertToCollection(array $data, $index = null)
+    {
+        $data = collect($data);
+
+        if ($index) {
+            $data[$index] = collect($data[$index]);
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param mixed $status
+     */
+    private function setStatus($status)
+    {
+        $this->status = $status;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getStatus()
+    {
+        return $this->status;
+    }
+
+    /**
+     * @return null
+     */
+    public function getKey()
+    {
+        return $this->key;
+    }
+
+    /**
+     * @param null $key
+     */
+    public function setKey($key)
+    {
+        $this->key = $key;
+
+        return $this;
+    }
+
+    /**
+     * @throws \Mrjonleek\GoogleApi\Eceptions\PlacesException
+     */
+    private function checkKey()
+    {
+        if (!$this->key) {
+            throw new PlacesException('API KEY is not specified.');
+        }
+    }
+
+    /**
+     * Prepare the params for the Place Search.
+     *
+     * @param $location
+     * @param $radius
+     * @param $params
+     *
+     * @throws \Mrjonleek\GoogleApi\Eceptions\PlacesException
+     */
+    private function prepareNearbySearchParams($location, $radius, $params)
+    {
+        $params['location'] = $location;
+        $params['radius'] = $radius;
+
+        if (array_key_exists('rankby', $params)
+            AND $params['rankby'] === 'distance'
+        ) {
+            unset($params['radius']);
+
+            if (!array_any_keys_exists(['keyword', 'name', 'type'], $params)) {
+                throw new PlacesException("Nearby Search require one"
+                    . " or more of 'keyword', 'name', or 'type' params since 'rankby' = 'distance'.");
+            }
+        } elseif (!$radius) {
+            throw new PlacesException("'radius' param is not defined.");
+        }
+
+        return $params;
+    }
+
+    /**
+     * @param $location
+     * @param $radius
+     * @param $params
+     *
+     * @return mixed
+     * @throws \Mrjonleek\GoogleApi\Exceptions\PlacesException
+     */
+    private function prepareRadarSearchParams($location, $radius, $params)
+    {
+        $params['location'] = $location;
+        $params['radius'] = $radius;
+
+        if (!array_any_keys_exists(['keyword', 'name', 'type'], $params)) {
+            throw new PlacesException("Radar Search require one"
+                . " or more of 'keyword', 'name', or 'type' params.");
+        }
+
+        return $params;
+    }
+}
