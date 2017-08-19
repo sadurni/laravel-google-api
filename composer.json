@@ -1,0 +1,26 @@
+{
+    "name": "mrjonleek/laravel-google-api",
+    "description": "A Laravel/Lumen package for working with Google API services.",
+    "type": "library",
+    "license": "DBAD",
+    "authors": [
+        {
+            "name": "Jonathan Leek",
+            "email": "developer@jonathanleek.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.5.9",
+        "guzzlehttp/guzzle": "^6.1",
+        "illuminate/support": "~5.0",
+        "illuminate/container": "~5.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Mrjonleek\\GoogleApi\\": "src/"
+        }
+    }
+}
