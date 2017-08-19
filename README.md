@@ -1,3 +1,6 @@
+[![Latest Stable Version](https://poser.pugx.org/mrjonleek/laravel-google-api/v/stable)](https://packagist.org/packages/mrjonleek/laravel-google-api)
+[![License](https://poser.pugx.org/mrjonleek/laravel-google-api/license)](https://packagist.org/packages/mrjonleek/laravel-google-api)
+
 # Google Places API.
 
 A **[Laravel/Lumen](https://laravel.com/docs/5.4)** package for working with **Google API Web Services**.
