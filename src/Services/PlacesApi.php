@@ -299,10 +299,12 @@ class PlacesApi
         ) {
             unset($params['radius']);
 
+            /* Need to resolve with custom method
             if (!array_any_keys_exists(['keyword', 'name', 'type'], $params)) {
                 throw new PlacesException("Nearby Search require one"
                     . " or more of 'keyword', 'name', or 'type' params since 'rankby' = 'distance'.");
             }
+             */
         } elseif (!$radius) {
             throw new PlacesException("'radius' param is not defined.");
         }
